@@ -1,12 +1,16 @@
 const Koa = require('koa');
+const Router = require('koa-router');
 const bodyParser = require('koa-bodyparser');
 const session = require('koa-generic-session');
 const convert = require('koa-convert');
 const CSRF = require('koa-csrf');
 const static = require('koa-static-server');
 const cors = require('koa-cors');
+// user defined
+const search = require('./search');
 
 const app = new Koa();
+const router = new Router();
 
 // serve static file
 app.use(static({rootDir: 'static', rootPath: "/static", log: true}));
@@ -51,13 +55,23 @@ app.use(async (ctx, next) => {
 });
 
 // response
-app.use(async ctx => {
-    if (ctx.csrf) ctx.body = ctx.csrf;
-    ctx.body = 'Hello World';
+app.use(router.routes()).use(router.allowedMethods());;
+
+router.get('/search/:key', async (ctx, next) => {
+    const key = ctx.params.key;
+    console.log(ctx);
+    ctx.body = await search(key);
+    if (!ctx.body) {
+        ctx.body = "Not found."
+    }
+    ctx.status = 200;
+    return;
 });
 
 app.on('error', (err, ctx) => {
-    log.error('server error', err, ctx)
+    ctx.body = "Internal Error";
+    ctx.status = 500;
+    console.log('server error', err, ctx);
 });
 
 // start server
